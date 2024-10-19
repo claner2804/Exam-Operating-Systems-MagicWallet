@@ -37,7 +37,7 @@ void* collect_stones(void* arg) {
         pthread_mutex_lock(&wallet_lock); //hier wird die Geldbörse gesperrt
         if (coins == 0 && running) { //wenn die Geldbörse leer ist und die Simulation noch läuft
             coins = rand() % (WALLET_CAPACITY + 1); //zufällige Anzahl an Münzen bis zur Kapazität
-            printf("Der Händler sagt: Kieselsteine werden in %d Münzen verwandelt und ausgeworfen! \n", coins);
+            printf("Der verirrte Händler sagt: Kieselsteine werden in %d Münzen verwandelt und ausgeworfen! \n", coins);
         }
         pthread_mutex_unlock(&wallet_lock); //hier wird der Geldbeutel entsperrt
     }
@@ -56,7 +56,7 @@ void* hunter_thread(void* arg) {
         if (coins > 0) {
             coins--; //nur eine Münze wird aus der Börse genommen
             collected = true;
-            printf("Jäger Nummer %d sagt:  Juhuuu ich habe eine Münze gesammelt! Münzen die ich noch habe: %d\n", hunter_id, coins);
+            printf("armer Jäger %d sagt:  Juhuuu ich habe eine Münze gesammelt! Münzen die ich noch habe: %d\n", hunter_id, coins);
         }
         pthread_mutex_unlock(&wallet_lock);
         if (collected) {
