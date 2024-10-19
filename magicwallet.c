@@ -56,7 +56,7 @@ void* hunter_thread(void* arg) {
         if (coins > 0) {
             coins--; //nur eine Münze wird aus der Börse genommen
             collected = true;
-            printf("armer Jäger %d sagt:  Juhuuu ich habe eine Münze gesammelt! Münzen die ich noch habe: %d\n", hunter_id, coins);
+            printf("armer Jäger %d hat schaut wie viele Münzen er noch hat.. Es sind %d Stück!\n", hunter_id, coins);
         }
         pthread_mutex_unlock(&wallet_lock);
         if (collected) {
