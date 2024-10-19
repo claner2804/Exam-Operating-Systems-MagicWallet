@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <signal.h>
 
-// Definiere Konstanten für die Kapazität der Geldbörse, die Zeit zum Münzauffüllen, die Simulationszeit und die Anzahl der Jäger
 #define WALLET_CAPACITY 10
 #define STONE_COLLECTION_TIME 2 // Sekunden
 #define SIMULATION_TIME 300   // 5 Minuten in Sekunden
@@ -15,6 +14,9 @@
 pthread_mutex_t wallet_lock;
 int coins = 0; // Zufällige Anzahl der Münzen zu Beginn
 bool running = true;
+
+pthread_t hunters[HUNTERS];
+pthread_t collector;
 
 // Signal-Handler Funktion für SIGINT
 void handle_sigint(int sig) {
@@ -27,8 +29,7 @@ void* collect_stones(void* arg) {
     while (running) {
         sleep(STONE_COLLECTION_TIME); // Sammle Kieselsteine für eine gewisse Zeit
         pthread_mutex_lock(&wallet_lock); // Sperre die Geldbörse
-        if (coins == 0) {
-            // Verwandelt gesammelte Kieselsteine in eine zufällige Anzahl an Münzen
+        if (coins == 0 && running) { // Nur Münzen erzeugen, wenn der Händler läuft
             coins = rand() % (WALLET_CAPACITY + 1); // Zufällige Anzahl Münzen bis zur Kapazität
             printf("[Händler] Verwandelt Kieselsteine in %d Münzen und wirft sie aus!\n", coins);
         }
@@ -58,15 +59,46 @@ void* hunter_thread(void* arg) {
         usleep((rand() % 400 + 100) * 1000); // Zufällige Verzögerung
     }
 
-    printf("Jäger %d hat %d Münzen gesammelt.\n", hunter_id, collected_coins);
-    return NULL;
+    // Rückgabe der gesammelten Münzen an den Hauptthread
+    int* result = malloc(sizeof(int));
+    if (result == NULL) {
+        perror("Fehler bei der Speicherzuweisung");
+        pthread_exit(NULL);
+    }
+    *result = collected_coins;
+    pthread_exit(result);
+}
+
+// Funktion zum Stoppen aller Threads bei SIGINT
+void graceful_shutdown() {
+    printf("[Main] Beende die Simulation und warte auf alle Threads...\n");
+    running = false;
+
+    // Warten auf das Ende der Jäger-Threads und Ausgabe der gesammelten Münzen
+    for (int i = 0; i < HUNTERS; i++) {
+        void* retval;
+        pthread_join(hunters[i], &retval);
+        if (retval != NULL) {
+            int collected_coins = *((int*)retval);
+            free(retval);
+            printf("Jäger %d hat %d Münzen gesammelt.\n", i, collected_coins);
+        } else {
+            printf("Jäger %d hat keine Münzen gesammelt.\n", i);
+        }
+    }
+
+    pthread_join(collector, NULL); // Warten auf das Ende des Sammel-Threads
+    pthread_mutex_destroy(&wallet_lock);
+    printf("[Main] Programm beendet.\n");
 }
 
 int main() {
     srand(time(NULL)); // Initialisiere den Zufallszahlengenerator
-    pthread_t hunters[HUNTERS];
-    pthread_t collector;
     pthread_mutex_init(&wallet_lock, NULL);
+
+    // Zufällige Initialisierung der Münzen in der Geldbörse
+    coins = rand() % (WALLET_CAPACITY + 1);
+    printf("[Main] Anfangsanzahl der Münzen in der Geldbörse: %d\n", coins);
 
     signal(SIGINT, handle_sigint);
 
@@ -85,16 +117,7 @@ int main() {
     }
 
     sleep(SIMULATION_TIME); // Simulation läuft für 5 Minuten
-    running = false; // Beende die Simulation
-
-    // Warten auf das Ende der Jäger-Threads
-    for (int i = 0; i < HUNTERS; i++) {
-        pthread_join(hunters[i], NULL);
-    }
-
-    pthread_join(collector, NULL); // Warten auf das Ende des Sammel-Threads
-    pthread_mutex_destroy(&wallet_lock);
-    printf("[Main] Programm beendet.\n");
+    graceful_shutdown(); // Beende die Simulation sauber und warte auf alle Threads
 
     return 0;
 }
