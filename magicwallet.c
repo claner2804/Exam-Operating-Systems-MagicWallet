@@ -1,3 +1,9 @@
+/*
+ * Claudia Steiner
+ * Martikelnummer: 52312304
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -89,7 +95,7 @@ void graceful_shutdown() {
 
     pthread_join(collector, NULL); //wenn der Händler fertig ist, warte auf ihn
     pthread_mutex_destroy(&wallet_lock);
-    printf("[Main] Programm beendet.\n");
+    printf("Die Jäger und die Sammler sind müde und beeden ihre Aufgaben. \n");
 }
 
 int main() {
